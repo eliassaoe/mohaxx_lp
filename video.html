@@ -7,6 +7,7 @@
     
     <!-- Préchargement des ressources critiques -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;700&display=swap" as="style">
+    <link rel="preload" href="https://d1yei2z3i6k35z.cloudfront.net/5854694/66a2bd7d99a4f_VideoThumbnailMasterclass-ezgif.com-optimize1.gif" as="image">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -283,12 +284,23 @@
             border-color: var(--highlight);
         }
         
-        .video-container iframe {
-            aspect-ratio: 16/10;
-            width: 100% !important;
-            height: auto !important;
+        .video-player {
+            width: 100%;
+            aspect-ratio: 16/9;
             border-radius: 12px;
-            max-height: none !important;
+            background-color: #000;
+            object-fit: cover;
+        }
+        
+        .video-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+            z-index: 1;
         }
         
         .play-overlay {
@@ -300,9 +312,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: rgba(0, 0, 0, 0.2);
+            background-color: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             pointer-events: none;
+            z-index: 2;
         }
         
         .play-button {
@@ -545,10 +558,14 @@
             </h1>
             
             <div class="video-wrapper">
-                <div class="video-label">📺 Regardez cette vidéo de 5 minutes</div>
-                <div class="video-container" onclick="trackTikTokConversion('VideoPlay')">
-                    <iframe src="https://www.loom.com/embed/9ce412339c7c4d76b877e360d6459c41?sid=b3866f13-49a3-4616-af0d-7dfc8e8326a5" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-                    <div class="play-overlay">
+                <div class="video-label">📺 Regardez notre masterclass gratuite</div>
+                <div class="video-container" id="videoContainer">
+                    <video id="masterclassVideo" class="video-player" preload="metadata">
+                        <source src="https://d1yei2z3i6k35z.cloudfront.net/5854694/66f57a72d1597_masterclassnew.mp4" type="video/mp4">
+                        Votre navigateur ne supporte pas la lecture vidéo.
+                    </video>
+                    <img src="https://d1yei2z3i6k35z.cloudfront.net/5854694/66a2bd7d99a4f_VideoThumbnailMasterclass-ezgif.com-optimize1.gif" alt="Aperçu de la masterclass SMMA" class="video-thumbnail" id="videoThumbnail">
+                    <div class="play-overlay" id="playOverlay">
                         <div class="play-button"></div>
                     </div>
                 </div>
@@ -593,17 +610,75 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Track video interactions
-            const videoContainer = document.querySelector('.video-container');
+            // Gérer la lecture vidéo
+            const videoContainer = document.getElementById('videoContainer');
+            const videoElement = document.getElementById('masterclassVideo');
+            const playOverlay = document.getElementById('playOverlay');
+            const videoThumbnail = document.getElementById('videoThumbnail');
             
-            if (videoContainer) {
-                videoContainer.addEventListener('click', function() {
-                    const playOverlay = this.querySelector('.play-overlay');
-                    if (playOverlay) {
-                        playOverlay.style.display = 'none';
-                    }
-                });
+            // Fonction pour lire la vidéo
+            function playVideo() {
+                if (videoElement.paused) {
+                    videoElement.play()
+                      .then(() => {
+                          // Vidéo en cours de lecture
+                          playOverlay.style.display = 'none';
+                          videoThumbnail.style.display = 'none';
+                          // Tracker la lecture de la vidéo
+                          trackTikTokConversion('VideoPlay');
+                      })
+                      .catch(err => {
+                          console.error('Erreur de lecture vidéo:', err);
+                          // Afficher à nouveau les contrôles en cas d'erreur
+                          playOverlay.style.display = 'flex';
+                          videoThumbnail.style.display = 'block';
+                      });
+                } else {
+                    videoElement.pause();
+                    playOverlay.style.display = 'flex';
+                    // Ne pas réafficher la miniature pendant la pause
+                }
             }
+            
+            // Ajouter des écouteurs d'événements
+            videoContainer.addEventListener('click', playVideo);
+            
+            // Afficher l'overlay lorsque la vidéo est en pause
+            videoElement.addEventListener('pause', function() {
+                playOverlay.style.display = 'flex';
+            });
+            
+            // Masquer l'overlay lorsque la vidéo est lue
+            videoElement.addEventListener('play', function() {
+                playOverlay.style.display = 'none';
+                videoThumbnail.style.display = 'none';
+            });
+            
+            // Suivre les événements de la vidéo pour les statistiques
+            videoElement.addEventListener('ended', function() {
+                playOverlay.style.display = 'flex';
+                // Ne pas réafficher la miniature à la fin
+                trackTikTokConversion('CompleteVideo');
+            });
+            
+            // Suivre la progression de la vidéo pour les statistiques
+            let tracked25 = false, tracked50 = false, tracked75 = false;
+            videoElement.addEventListener('timeupdate', function() {
+                const progress = (videoElement.currentTime / videoElement.duration) * 100;
+                
+                if (!tracked25 && progress >= 25) {
+                    trackTikTokConversion('VideoProgress25');
+                    tracked25 = true;
+                }
+                if (!tracked50 && progress >= 50) {
+                    trackTikTokConversion('VideoProgress50');
+                    tracked50 = true;
+                }
+                if (!tracked75 && progress >= 75) {
+                    trackTikTokConversion('VideoProgress75');
+                    tracked75 = true;
+                }
+            });
         });
     </script>
 </body>
